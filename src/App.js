@@ -1,27 +1,76 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPlay, faStop } from '@fortawesome/free-solid-svg-icons'
 
-function App() {
+class App extends React.Component {
 
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+
+  handlePlay() {
+    console.log('Play!');
+  }
+
+  handleStop() {
+    console.log('Stop!');
+  }
+
+  render() {
+    return (
+      <div className="App">
+        <div className="results">
+          <img className="logo" src="http://pre03.deviantart.net/affb/th/pre/i/2012/059/8/9/fire_vector_by_lekadema-d4r921b.png" />
+          <h2>Resultados: </h2>
+          <form>
+            <table>
+              <tbody>
+                <tr>
+                  <th>
+                    <label>
+                      Temperatura:
+                  </label>
+                  </th>
+                  <th>
+                    <input type="text" name="name" onInput={e => console.log(e)}/>
+                  </th>
+                </tr>
+                <tr>
+                  <th>
+                    <label>
+                      Ventilador:
+                  </label>
+                  </th>
+                  <th>
+                    <input type="text" name="name" onInput={e => console.log(e)}/>
+                  </th>
+                </tr>
+                <tr>
+                  <th>
+                    <label>
+                      Gas:
+                  </label>
+                  </th>
+                  <th>
+                    <input type="text" name="name" onInput={e => console.log(e)}/>
+                  </th>
+                </tr>
+                <tr>
+                  <th>
+                    <FontAwesomeIcon className="playButton" icon={faPlay} onClick={this.handlePlay} />
+                    Play
+                </th>
+                  <th>
+                    <FontAwesomeIcon className="stopButton" icon={faStop} onClick={this.handleStop} />
+                    Stop
+                </th>
+                </tr>
+              </tbody>
+            </table>
+          </form>
+        </div>
+      </div >
+    );
+  }
+
 }
 
 export default App;
