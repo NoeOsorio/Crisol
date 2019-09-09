@@ -37,6 +37,12 @@ form {
   color: red;
 }
 
+.buttonRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+}
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

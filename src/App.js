@@ -2,12 +2,31 @@ import React from 'react';
 import './App.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlay, faStop } from '@fortawesome/free-solid-svg-icons'
+import firebase from "./config/firebase"
 
 class App extends React.Component {
 
+  constructor(props) {
+    super(props);
+    this.state = {
+      temperature: 0,
+      gas: 0,
+      fan: 0,
+    };
+    this.handlePlay = this.handlePlay.bind(this);
+    this.handleStop = this.handleStop.bind(this);
+  }
+
+  addFirestore() {
+    let add = firebase.firestore().collection("users").add({ nombre: "noe" })
+    console.log("Añadido")
+  }
 
   handlePlay() {
     console.log('Play!');
+    console.log(this.state.temperature);
+    console.log(this.state.fan);
+    console.log(this.state.gas);
   }
 
   handleStop() {
@@ -30,7 +49,7 @@ class App extends React.Component {
                   </label>
                   </th>
                   <th>
-                    <input type="text" name="name" onInput={e => console.log(e)}/>
+                    <input type="text" name="name" onInput={e => this.setState({ temperature: e.target.value })} />
                   </th>
                 </tr>
                 <tr>
@@ -40,7 +59,7 @@ class App extends React.Component {
                   </label>
                   </th>
                   <th>
-                    <input type="text" name="name" onInput={e => console.log(e)}/>
+                    <input type="text" name="name" onInput={e => this.setState({ fan: e.target.value })} />
                   </th>
                 </tr>
                 <tr>
@@ -50,27 +69,29 @@ class App extends React.Component {
                   </label>
                   </th>
                   <th>
-                    <input type="text" name="name" onInput={e => console.log(e)}/>
+                    <input type="text" name="name" onInput={e => this.setState({ gas: e.target.value })} />
                   </th>
-                </tr>
-                <tr>
-                  <th>
-                    <FontAwesomeIcon className="playButton" icon={faPlay} onClick={this.handlePlay} />
-                    Play
-                </th>
-                  <th>
-                    <FontAwesomeIcon className="stopButton" icon={faStop} onClick={this.handleStop} />
-                    Stop
-                </th>
                 </tr>
               </tbody>
             </table>
+
+            <div className="buttonRow">
+              <div>
+                <FontAwesomeIcon className="playButton" icon={faPlay} onClick={this.handlePlay} />
+                Play
+              </div>
+
+              <div>
+                <FontAwesomeIcon className="stopButton" icon={faStop} onClick={this.handleStop} />
+                Stop
+              </div>
+
+            </div>
           </form>
         </div>
       </div >
     );
   }
-
 }
 
 export default App;
