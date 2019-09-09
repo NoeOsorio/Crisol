@@ -2,8 +2,17 @@ import React from 'react';
 import logo from './logo.svg';
 import './App.css';
 
-function App() {
+import firebase from "./config/firebase"
 
+function addFirestore(){
+    let add = firebase.firestore().collection("users").add({nombre: "noe"})
+    console.log("Añadido")
+}
+
+
+
+function App() {
+  addFirestore()
   return (
     <div className="App">
       <header className="App-header">
