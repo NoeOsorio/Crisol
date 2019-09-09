@@ -1,0 +1,19 @@
+{
+  "name": "crisol",
+  "version": "1.0.0",
+  "description": "Agente inteligente para controlar un crisol.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoeOsorio/Crisol.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NoeOsorio/Crisol/issues"
+  },
+  "homepage": "https://github.com/NoeOsorio/Crisol#readme"
+}
