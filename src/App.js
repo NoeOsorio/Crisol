@@ -38,7 +38,7 @@ class App extends React.Component {
       <div className="App">
         <div className="results">
           <img className="logo" src="http://pre03.deviantart.net/affb/th/pre/i/2012/059/8/9/fire_vector_by_lekadema-d4r921b.png" />
-          <h2>Resultados: </h2>
+          <h2>Resultados </h2>
           <form>
             <table>
               <tbody>
