@@ -74,7 +74,8 @@ class App extends React.Component {
                 </tr>
               </tbody>
             </table>
-
+            <div>
+            </div>
             <div className="buttonRow">
               <div>
                 <FontAwesomeIcon className="playButton" icon={faPlay} onClick={this.handlePlay} />
