@@ -1,4 +1,5 @@
 import firebase from "firebase"
+import { template } from "@babel/core";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCsHmC_CXB4K98V3qCf7-Xvj5319wcagAc",
@@ -15,5 +16,6 @@ firebase.initializeApp(firebaseConfig);
 function addFirestore(){
     firebase.firestore().collection("users").add({nombre: "noe"})
 }
+
 
 export default firebase
