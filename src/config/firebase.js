@@ -13,8 +13,8 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-function addFirestore(){
-    firebase.firestore().collection("users").add({nombre: "noe"})
+function addFirestore(object){
+    firebase.firestore().collection(new Date().toISOString).add(object)
 }
 
 
