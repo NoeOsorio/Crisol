@@ -13,9 +13,15 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-function addFirestore(object){
-    firebase.firestore().collection(new Date().toISOString).add(object)
-}
+
 
 
 export default firebase
+
+
+// class firebaseService{
+    
+//     function addFirestore(object){
+//         firebase.firestore().collection(new Date().toISOString).add(object)
+//     }
+// }

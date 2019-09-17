@@ -30,10 +30,12 @@ form {
 }
 
 .playButton {
+  margin-right:  10px;
   color: green;
 }
 
 .stopButton {
+  margin-right:  10px;
   color: red;
 }
 
