@@ -19,7 +19,7 @@ class App extends React.Component {
       fan: 0,
       goal: 270,
       // Aumenta 10%
-      porcentaje: 10
+      porcentaje: 0
     };
     this.handlePlay = this.handlePlay.bind(this);
     this.handleStop = this.handleStop.bind(this);
@@ -32,7 +32,10 @@ class App extends React.Component {
 
   handlePlay() {
     console.log('Play!');
-    this.warm(this.state.temperature)
+    this.setState({
+      interval: setInterval(() => this.warm(this.state.temperature), 1000)
+    })
+
     // console.log(`Temperatura del Crisol: ${this.state.temperature}`);
     // console.log(`Ventilador: ${this.state.fan}`);
     // console.log(`Gas: ${this.state.gas}`);
@@ -40,11 +43,21 @@ class App extends React.Component {
 
   handleStop() {
     console.log('Stop!');
+    this.setState({
+      temperature: 0,
+      gas: 0,
+      fan: 0,
+      goal: 270,
+      // Aumenta 10%
+      porcentaje: 0
+    })
+    clearInterval(this.state.interval);
   }
 
   getTemperature(temperatura_anterior, gas, ventilador) {
     // Temporal
-    return (temperatura_anterior) + (2 * gas) - 2 - (ventilador ? 3 : 0)
+    return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
+    // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
 
   }
 
@@ -107,59 +120,62 @@ class App extends React.Component {
   async getGasDB(grow) {
     const error = 5
 
-    if(grow < 0){
+    if (grow < 0) {
       return 0
     }
     let exact = false
     // GAS
-    let N = 0
+    let N = 1
     let gas
-    let growPerGas = 0
+    let growPerGas = 1
     let low = 0, high = 100
     let snapshot = await firebase.firestore().collection('history').where("grow", ">=", 0).get()
 
     console.log(`Se necesita crecer: ${grow}ºC`)
     if (snapshot.docs.length) {
-      snapshot.docs.forEach(doc =>{
-        let docGas = doc.data()["gas"] 
+      snapshot.docs.forEach(doc => {
+        let docGas = doc.data()["gas"]
         let docGrow = doc.data()["grow"]
-        if(docGrow != 0 && docGas != 0 && docGas >= 10){
+        if (docGrow !== 0 && docGas !== 0 && docGas >= 10) {
           N++
           growPerGas += docGrow / docGas
         }
         console.log(`Document gas: ${docGas}% grow: ${docGrow}ºC`)
-        
+
         // Optimo
-        if(grow === docGrow){
+        if (grow === docGrow) {
           gas = docGas
           exact = true;
         }
 
         // Mayor
-        if( grow <= docGrow){
+        if (grow <= docGrow) {
           high = docGas < 1 ? 1 : docGas - 1
         }
 
         // Menor
-        if( grow >= docGrow){
+        if (grow >= docGrow) {
           low = docGas > 99 ? 99 : docGas + 1
         }
-        
+
       })
       console.log(`Grow Per gas = ${growPerGas / N}`)
       growPerGas /= N
-      if(!gas){
+      if (!gas) {
         console.log("High " + high)
-        high = high < grow /  growPerGas ? high : grow /  growPerGas
+        high = high < grow / growPerGas ? high : grow / growPerGas
         high = Math.floor(high - 1)
         // high = (grow /  growPerGas)
         // high = high > 100 ? 100 : high
         console.log(`High: ${high} Low: ${low}`)
         gas = Math.floor(Math.random() * (high - low)) + low
+        // if(gas < 0){
+        //   gas = 0
+        // }
       }
       console.log(`Se asignara: ${gas}%`)
     } else {
-      gas = Math.floor(Math.random() * 100)
+      gas = Math.floor(Math.random() * 10) + 1
       console.log(`No se encontro registro parecido a ${grow}`)
       console.log(`Se asignara valor de gas de ${gas}`)
     }
@@ -178,7 +194,7 @@ class App extends React.Component {
       <div className="App">
         <div className="results">
           <img className="logo" src="http://pre03.deviantart.net/affb/th/pre/i/2012/059/8/9/fire_vector_by_lekadema-d4r921b.png" />
-          <h2>Resultados </h2>
+          <h2>Crisol </h2>
           <form>
             <TextField
               label="Temperatura"
