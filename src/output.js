@@ -47,8 +47,8 @@ export default function Output(props) {
           <TableHead>
             <TableRow>
               <TableCell className={classes.cell}>Temperatura</TableCell>
-              <TableCell className={classes.cell} align="right">Gas (%)</TableCell>
-              <TableCell className={classes.cell} align="right">Aumento de Temperatura (%)</TableCell>
+              <TableCell className={classes.cell} align="right">Gas</TableCell>
+              <TableCell className={classes.cell} align="right">Aumento de Temperatura </TableCell>
               <TableCell  className={classes.cell} align="right">Ventilador</TableCell>
             </TableRow>
           </TableHead>
@@ -58,7 +58,7 @@ export default function Output(props) {
                   {props.temp} ºC
                 </TableCell>
                 <TableCell className={classes.cell} align="right">{props.gas} %</TableCell>
-                <TableCell className={classes.cell} align="right">{props.grow} %</TableCell>
+                <TableCell className={classes.cell} align="right">{props.grow} ºC</TableCell>
                 <TableCell className={classes.cell} align="right">{props.fan ? "Encendido" : "Apagado"}</TableCell>
               </TableRow>
           </TableBody>
