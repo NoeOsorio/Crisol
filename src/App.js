@@ -4,15 +4,23 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlay, faStop } from '@fortawesome/free-solid-svg-icons'
 import firebase from "./config/firebase"
 
+// import TextField from '@material-ui/core/TextField';
+import TextField from "./textField"
+import Output from "./output"
+
+
 class App extends React.Component {
 
   constructor(props) {
     super(props);
     this.state = {
+      last : 0,
       temperature: 0,
       gas: 0,
       fan: 0,
-      porcentaje: 0
+      goal: 270,
+      // Aumenta 10%
+      porcentaje: 10
     };
     this.handlePlay = this.handlePlay.bind(this);
     this.handleStop = this.handleStop.bind(this);
@@ -26,9 +34,9 @@ class App extends React.Component {
   handlePlay() {
     console.log('Play!');
     this.warm(this.state.temperature)
-    console.log(`Temperatura del Crisol: ${this.state.temperature}`);
-    console.log(`Ventilador: ${this.state.fan}`);
-    console.log(`Gas: ${this.state.gas}`);
+    // console.log(`Temperatura del Crisol: ${this.state.temperature}`);
+    // console.log(`Ventilador: ${this.state.fan}`);
+    // console.log(`Gas: ${this.state.gas}`);
   }
 
   handleStop() {
@@ -36,122 +44,96 @@ class App extends React.Component {
   }
 
   getTemperature(temperatura_anterior, gas, ventilador) {
-
-    // return (temperatura_anterior) + (2 * gas) - 2 - (ventilador * 3)
-
-  }
-
-  getGas(temperatura_anterior, porcentaje) {
-    // let gas = 0
-    // let temp = temperatura_anterior + temperatura_anterior * porcentaje/100
-    // if (porcentaje >= 0) {
-    //   gas = (temp - temperatura_anterior + 2) / 2
-    // }
-  
-    // return gas > 100 ? 100 : gas
-    // Por ejemplo para subir un 25% la temperatura
-    // si temperatura_anterior = 100 entonces temperatura = 125
-    // 125 = 100 + 2*gas - ventilador*3 - 2
-    // Si queremos aumentar, osea porcentaje > 0
-    // Entonces ventilador = 0
-    // 125 = 100 + 2*gas - 2
-    // 125 + 2 = 100 + 2*gas
-    // 127 = 100 + 2*gas
-    // 27 = 2*gas
-    // 13.5 = gas
+    // Temporal
+    return (temperatura_anterior) + (2 * gas) - 2 - (ventilador * 3)
 
   }
 
-  getFanCounter(temperatura_anterior, porcentaje){
-    // return (temperatura_anterior * (porcentaje * -1)/100) >= 3
+  getGrow(last, max){
+    // max es el maximo porcentaje que puede crecer dado el cambio de temperatura con relacion al gas
+    let grow = (this.state.goal - last -1) * 100
+    if(grow > max){
+      grow = max
+    }
+    console.log(`Va a crecer ${grow}%`)
+    return grow
   }
 
-  warm(lastTemperature) {
+  getGas(grow)  {
+    return 10
+  }
+
+  getFanCounter(grow) {
+    return false;
+  }
+
+  warm() {
     // Porcentaje
-    let porcentaje = this.state.porcentaje
+    // let porcentaje = this.state.porcentaje
+    let last = this.state.temperature
+    let porcentaje = parseInt(this.getGrow(last, 100))
 
-    let gas = this.getGas(lastTemperature, porcentaje) 
+    let gas = parseInt(this.getGas(porcentaje))
     console.log(gas)
     let fan = this.getFanCounter(porcentaje)
     console.log(fan)
-
-    let temp = this.getTemperature(lastTemperature, gas, fan)
+    let temp = parseInt(this.getTemperature(last, gas, fan))
+    let grow = parseInt((temp / last - 1) * 100)
     console.log(temp)
+    console.log("En realidad crecio: " + grow + "%")
     this.setState({
-      gas : gas,
-      fan : fan,
-      temperature: temp
+      last : last,
+      gas: gas,
+      fan: fan,
+      temperature: temp,
+      porcentaje : porcentaje
     })
 
 
 
     this.addFirestore({
-      lastTemperature: lastTemperature,
+      last: last,
       gas: gas,
       fan: fan,
       temperature: temp,
-      porcentaje: porcentaje
+      grow: grow
     })
+    this.getHistory()
   }
 
   addFirestore(object) {
-    firebase.firestore().collection('test').add(object)
+    firebase.firestore().collection('history').add(object)
+  }
+
+  getHistory(){
+    firebase.firestore().collection('history').get().then(snapshot =>{
+        let mediaGas
+        snapshot.docs.forEach(doc =>{
+          console.log(doc.data())
+        })
+    })
   }
 
 
+
+
+
   render() {
+
     return (
       <div className="App">
         <div className="results">
           <img className="logo" src="http://pre03.deviantart.net/affb/th/pre/i/2012/059/8/9/fire_vector_by_lekadema-d4r921b.png" />
           <h2>Resultados </h2>
           <form>
-            <table>
-              <tbody>
-                <tr>
-                  <th>
-                    <label>
-                      Temperatura:
-                  </label>
-                  </th>
-                  <th>
-                    <input type="text" name="name" value={this.state.temperature} onChange={e => this.setState({ temperature: parseInt(e.target.value ? e.target.value : 0) })} />
-                  </th>
-                </tr>
+            <TextField
+              label="Temperatura"
+              variant="outlined"
+              id="temp"
+              value={this.state.temperature}
+              onChange={e => this.setState({ temperature: parseInt(e.target.value ? e.target.value : 0) })}
+            />
 
-                <tr>
-                  <th>
-                    <label>
-                      Porcentaje:
-                  </label>
-                  </th>
-                  <th>
-                    <input type="text" name="name" value={this.state.porcentaje} onChange={e => this.setState({ porcentaje: parseInt(e.target.value ? e.target.value : 0) })} />
-                  </th>
-                </tr>
-
-                {/* <tr>
-                  <th>
-                    <label>
-                      Ventilador:
-                  </label>
-                  </th>
-                  <th>
-                    <input type="text" name="name" onChange={e => this.setState({ fan: parseInt(e.target.value) })} />
-                  </th>
-                </tr> */}
-                {/* <tr>
-                  <th>
-                    <label>
-                      Gas:
-                  </label>
-                  </th>
-                  <th>
-                    <input type="text" name="name" onChange={e => this.setState({ gas: parseInt(e.target.value) })} />
-                  </th>
-                </tr> */}
-              </tbody>
-            </table>
             <div>
             </div>
             <div className="buttonRow">
@@ -167,6 +149,15 @@ class App extends React.Component {
 
             </div>
           </form>
+          <div className="output">
+            <Output
+              temp={this.state.temperature}
+              gas={this.state.gas}
+              fan={this.state.fan}
+              grow={this.state.porcentaje}
+            />
+
+          </div>
         </div>
       </div >
     );

@@ -46,6 +46,13 @@ form {
   align-items: center;
   justify-content: space-around;
 }
+
+.output{
+  width: 50%;
+  margin: 10px;
+  
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
