@@ -14,7 +14,6 @@ class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      last : 0,
       temperature: 0,
       gas: 0,
       fan: 0,
@@ -45,76 +44,131 @@ class App extends React.Component {
 
   getTemperature(temperatura_anterior, gas, ventilador) {
     // Temporal
-    return (temperatura_anterior) + (2 * gas) - 2 - (ventilador * 3)
+    return (temperatura_anterior) + (2 * gas) - 2 - (ventilador ? 3 : 0)
 
   }
 
-  getGrow(last, max){
-    // max es el maximo porcentaje que puede crecer dado el cambio de temperatura con relacion al gas
-    let grow = (this.state.goal - last -1) * 100
-    if(grow > max){
-      grow = max
-    }
+  getGrow(last) {
+    let grow = (this.state.goal / last - 1) * 100
+    console.log(`${this.state.goal} / ${last} - 1 = ${grow} %`)
     console.log(`Va a crecer ${grow}%`)
     return grow
   }
 
-  getGas(grow)  {
-    return 10
+  getDiff(temp) {
+    return this.state.goal - temp
+  }
+
+  getGas(grow) {
+    // Random gas
+    this.getGasDB(grow)
+    return Math.floor(Math.random() * 100)
   }
 
   getFanCounter(grow) {
-    return false;
+    return grow < 0;
   }
 
-  warm() {
-    // Porcentaje
-    // let porcentaje = this.state.porcentaje
-    let last = this.state.temperature
-    let porcentaje = parseInt(this.getGrow(last, 100))
+  async warm() {
 
-    let gas = parseInt(this.getGas(porcentaje))
-    console.log(gas)
-    let fan = this.getFanCounter(porcentaje)
-    console.log(fan)
+    let last = this.state.temperature
+    let needed = this.getDiff(last)
+    let gas = await this.getGasDB(needed)
+    let fan = this.getFanCounter(needed)
+
     let temp = parseInt(this.getTemperature(last, gas, fan))
-    let grow = parseInt((temp / last - 1) * 100)
-    console.log(temp)
-    console.log("En realidad crecio: " + grow + "%")
+    let grow = temp - last
+
+    console.log(`Aumento ${grow} ºC con ${gas}% de gas`)
     this.setState({
-      last : last,
+      last: last,
       gas: gas,
       fan: fan,
       temperature: temp,
-      porcentaje : porcentaje
+      porcentaje: grow
     })
 
 
 
-    this.addFirestore({
+    this.saveHistory({
       last: last,
       gas: gas,
       fan: fan,
       temperature: temp,
       grow: grow
     })
-    this.getHistory()
+    // this.getHistory()
   }
 
-  addFirestore(object) {
+  saveHistory(object) {
     firebase.firestore().collection('history').add(object)
   }
 
-  getHistory(){
-    firebase.firestore().collection('history').get().then(snapshot =>{
-        let mediaGas
-        snapshot.docs.forEach(doc =>{
-          console.log(doc.data())
-        })
-    })
+  async getGasDB(grow) {
+    const error = 5
+
+    if(grow < 0){
+      return 0
+    }
+    let exact = false
+    // GAS
+    let N = 0
+    let gas
+    let growPerGas = 0
+    let low = 0, high = 100
+    let snapshot = await firebase.firestore().collection('history').where("grow", ">=", 0).get()
+
+    console.log(`Se necesita crecer: ${grow}ºC`)
+    if (snapshot.docs.length) {
+      snapshot.docs.forEach(doc =>{
+        let docGas = doc.data()["gas"] 
+        let docGrow = doc.data()["grow"]
+        if(docGrow != 0 && docGas != 0 && docGas >= 10){
+          N++
+          growPerGas += docGrow / docGas
+        }
+        console.log(`Document gas: ${docGas}% grow: ${docGrow}ºC`)
+        
+        // Optimo
+        if(grow === docGrow){
+          gas = docGas
+          exact = true;
+        }
+
+        // Mayor
+        if( grow <= docGrow){
+          high = docGas < 1 ? 1 : docGas - 1
+        }
+
+        // Menor
+        if( grow >= docGrow){
+          low = docGas > 99 ? 99 : docGas + 1
+        }
+        
+      })
+      console.log(`Grow Per gas = ${growPerGas / N}`)
+      growPerGas /= N
+      if(!gas){
+        console.log("High " + high)
+        high = high < grow /  growPerGas ? high : grow /  growPerGas
+        high = Math.floor(high - 1)
+        // high = (grow /  growPerGas)
+        // high = high > 100 ? 100 : high
+        console.log(`High: ${high} Low: ${low}`)
+        gas = Math.floor(Math.random() * (high - low)) + low
+      }
+      console.log(`Se asignara: ${gas}%`)
+    } else {
+      gas = Math.floor(Math.random() * 100)
+      console.log(`No se encontro registro parecido a ${grow}`)
+      console.log(`Se asignara valor de gas de ${gas}`)
+    }
+    return gas
   }
 
-
+  getBigger(a, b) {
+    return a >= b ? a : b
+  }
 
 
 
