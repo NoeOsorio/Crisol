@@ -56,7 +56,8 @@ class App extends React.Component {
 
   getTemperature(temperatura_anterior, gas, ventilador) {
     // Temporal
-    return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
+    return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
+    // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
 
   }
@@ -72,11 +73,7 @@ class App extends React.Component {
     return this.state.goal - temp
   }
 
-  getGas(grow) {
-    // Random gas
-    this.getGasDB(grow)
-    return Math.floor(Math.random() * 100)
-  }
+
 
   getFanCounter(grow) {
     return grow < 0;
@@ -118,34 +115,73 @@ class App extends React.Component {
   }
 
   async getGasDB(grow) {
-    const error = 5
-
+    console.log(grow)
     if (grow < 0) {
       return 0
     }
-    let exact = false
+    // Variables de entranemiento
+    let training = false
+    let cooling = false
+    // let boiling = false
     // GAS
     let N = 1
-    let gas
+    let gas = 0
     let growPerGas = 1
     let low = 0, high = 100
-    let snapshot = await firebase.firestore().collection('history').where("grow", ">=", 0).get()
+    let upSnapshot = await firebase.firestore().collection('history').where("grow", ">=", 0).get()
+    let downSnapshot = await firebase.firestore().collection('history').where("grow", "<", 0).get()
 
     console.log(`Se necesita crecer: ${grow}ºC`)
-    if (snapshot.docs.length) {
-      snapshot.docs.forEach(doc => {
+
+
+    if (upSnapshot.docs.length || downSnapshot.docs.length) {
+
+      // Aprender
+      if (upSnapshot.docs.length < 10) {
+        gas = upSnapshot.docs.length + 1
+        training = true;
+        console.log(`Se asigna gs de entrenamiento ${gas}`)
+      }
+      if (downSnapshot.docs.length) {
+        let lessLow = -1000
+        downSnapshot.docs.forEach(doc => {
+          let docGas = doc.data()["gas"]
+          let docGrow = doc.data()["grow"]
+
+          if (lessLow < docGas) {
+            lessLow = docGas
+          }
+
+
+          if (grow >= docGrow) {
+            low = docGas > 99 ? 99 : docGas + 1
+            console.log(`Low desde downSnapshot: ${low}`)
+          }
+
+        })
+
+        if (gas <= lessLow) {
+          gas = lessLow + 1
+          training = false
+          cooling = true
+          console.log(`Se asigna minimo de gas ${gas}`)
+        }
+
+      }
+
+      upSnapshot.docs.forEach(doc => {
         let docGas = doc.data()["gas"]
         let docGrow = doc.data()["grow"]
-        if (docGrow !== 0 && docGas !== 0 && docGas >= 10) {
+        if (docGrow !== 0 && docGas !== 0) {
           N++
-          growPerGas += docGrow / docGas
+          growPerGas = docGrow / docGas > growPerGas ? docGrow / docGas : growPerGas
+
         }
         console.log(`Document gas: ${docGas}% grow: ${docGrow}ºC`)
 
         // Optimo
         if (grow === docGrow) {
           gas = docGas
-          exact = true;
         }
 
         // Mayor
@@ -159,24 +195,42 @@ class App extends React.Component {
         }
 
       })
-      console.log(`Grow Per gas = ${growPerGas / N}`)
-      growPerGas /= N
-      if (!gas) {
-        console.log("High " + high)
-        high = high < grow / growPerGas ? high : grow / growPerGas
-        high = Math.floor(high - 1)
-        // high = (grow /  growPerGas)
-        // high = high > 100 ? 100 : high
-        console.log(`High: ${high} Low: ${low}`)
-        gas = Math.floor(Math.random() * (high - low)) + low
-        // if(gas < 0){
-        //   gas = 0
-        // }
+
+      console.log(`Grow per gas: ${growPerGas}`)
+
+      console.log("High " + high)
+      console.log(`High grow: ${grow / growPerGas}`);
+      
+      // Cambiar relacion
+      high = high < grow / growPerGas ? high : grow / growPerGas
+      high = Math.round(high)
+      console.log(`High: ${high} Low: ${low}`)
+      let tmpGas = Math.floor(Math.random() * (high - low)) + low
+
+      if (cooling) {
+        console.log("Cooling")
+        console.log(`Tmpgas : ${tmpGas} Gas: ${gas}`);
+
+        if (tmpGas > gas) {
+          gas = tmpGas
+        }
       }
+      else{
+        if(!training){
+          console.log("Se sigue normal");
+          gas = tmpGas
+        }
+      }
+
+      
+
+      gas = training ? gas : (cooling ? (tmpGas > gas ? tmpGas : gas) : tmpGas)
+
       console.log(`Se asignara: ${gas}%`)
     } else {
+      // Primera vez
       gas = Math.floor(Math.random() * 10) + 1
-      console.log(`No se encontro registro parecido a ${grow}`)
+      console.log(`No se encontro registro parecido a ${grow}%`)
       console.log(`Se asignara valor de gas de ${gas}`)
     }
     return gas
