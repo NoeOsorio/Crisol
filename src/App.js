@@ -32,9 +32,10 @@ class App extends React.Component {
 
   handlePlay() {
     console.log('Play!');
-    this.setState({
-      interval: setInterval(() => this.warm(this.state.temperature), 1000)
-    })
+    this.warm(this.state.temperature)
+    // this.setState({
+    //   interval: setInterval(() => this.warm(this.state.temperature), 1000)
+    // })
 
     // console.log(`Temperatura del Crisol: ${this.state.temperature}`);
     // console.log(`Ventilador: ${this.state.fan}`);
@@ -56,8 +57,8 @@ class App extends React.Component {
 
   getTemperature(temperatura_anterior, gas, ventilador) {
     // Temporal
-    return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
+    return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
 
   }
@@ -115,7 +116,7 @@ class App extends React.Component {
   }
 
   async getGasDB(grow) {
-    console.log(grow)
+    
     if (grow < 0) {
       return 0
     }
@@ -127,156 +128,177 @@ class App extends React.Component {
     let N = 1
     let gas = 0
     let growPerGas = 1
-    let low = 0, high = 100
-    let upSnapshot = await firebase.firestore().collection('history').where("grow", ">=", 0).get()
-    let downSnapshot = await firebase.firestore().collection('history').where("grow", "<", 0).get()
+    let low = 0, high = 100 //Gas
+    // let upSnapshot = await firebase.firestore().collection('history').where("grow", ">=", 0).get()
+    // let downSnapshot = await firebase.firestore().collection('history').where("grow", "<", 0).get()
     let snapshot = await firebase.firestore().collection('history').get()
-    console.log(`Se necesita crecer: ${grow}ºC`)
 
-    // if (snapshot) {
-    //   if (snapshot.docs.length < 20) {
-    //     high = 20
-    //     training = true
-    //   }
-    //   console.log(high)
-    //   snapshot.docs.forEach(doc => {
-    //     let docGas = doc.data()["gas"]
-    //     let docGrow = doc.data()["grow"]
+    console.log(`\n Se necesita crecer: ${grow}ºC`)
 
-    //     if(grow === docGrow){
-    //       low = docGas
-    //       high = docGas
-    //     }
-    //     else if(grow > docGrow){
-    //       // low = low < high ? docGas : low
-    //       if(low < high){
-    //         low = docGas
-    //       }
-    //       else{
-    //         high = training ? low + 1 : high
-    //       }
-    //     }else{
-    //       if( high > low){
-    //         high = docGas
-    //       }
-    //       else{
-    //         low = training ? high - 1 : low
-    //       }
-    //     }
-
-    //   })
-    //   console.log(`High: ${high} Low: ${low}`)
-    //   gas = Math.floor(Math.random() * (high - low)) + low
-    //   console.log(gas);
-      
-
-    // }else {
-    //   // Primera vez
-    //   gas = Math.floor(Math.random() * 10) + 1
-    //   console.log(`No se encontro registro parecido a ${grow}%`)
-    //   console.log(`Se asignara valor de gas de ${gas}`)
-    // }
-
-
-    if (upSnapshot.docs.length || downSnapshot.docs.length) {
-
-      // Aprender
-      if (upSnapshot.docs.length < 10) {
-        gas = upSnapshot.docs.length + 1
-        training = true;
-        console.log(`Se asigna gs de entrenamiento ${gas}`)
-      }
-      if (downSnapshot.docs.length) {
-        let lessLow = -1000
-        downSnapshot.docs.forEach(doc => {
-          let docGas = doc.data()["gas"]
-          let docGrow = doc.data()["grow"]
-
-          if (lessLow < docGas) {
-            lessLow = docGas
-          }
-
-
-          if (grow >= docGrow) {
-            low = docGas > 99 ? 99 : docGas + 1
-            console.log(`Low desde downSnapshot: ${low}`)
-          }
-
-        })
-
-        if (gas <= lessLow) {
-          gas = lessLow + 1
-          training = false
-          cooling = true
-          console.log(`Se asigna minimo de gas ${gas}`)
-        }
-
+    if (snapshot) {
+      if (snapshot.docs.length < 20) {
+        console.log("Entrenando")
+        high = Math.floor(Math.random() * 20) + 1
+        training = true
       }
 
-      upSnapshot.docs.forEach(doc => {
+      snapshot.docs.forEach(doc => {
+        console.log(doc.data())
         let docGas = doc.data()["gas"]
         let docGrow = doc.data()["grow"]
-        if (docGrow !== 0 && docGas !== 0) {
-          N++
+        let docTemp = doc.data()["temperature"]
+
+        if(docTemp >= this.goal){
+          high = docGas
+        }
+        if(docGrow !== 0 && docGas !== 0){
           growPerGas = docGrow / docGas > growPerGas ? docGrow / docGas : growPerGas
-
         }
-        console.log(`Document gas: ${docGas}% grow: ${docGrow}ºC`)
-
-        // Optimo
-        if (grow === docGrow) {
-          gas = docGas
+        if(grow === docGrow){
+          low = docGas
+          high = docGas
         }
-
-        // Mayor
-        if (grow <= docGrow) {
-          high = docGas < 1 ? 1 : docGas - 1
-        }
-
-        // Menor
-        if (grow >= docGrow) {
-          low = docGas > 99 ? 99 : docGas + 1
+        else if(grow > docGrow){
+          // low = low < high ? docGas : low
+          if(low < high){
+            low = docGas + 1
+          }
+          else if(high < low){
+            high = training ? low + 1 : high
+          }
+        }else{
+          if( high > low){
+            high = docGas - 1
+          }
+          else if(low > high){
+            low = training ? high - 1 : low
+          }
         }
 
       })
-
-      console.log(`Grow per gas: ${growPerGas}`)
-
-      console.log("High " + high)
-      console.log(`High grow: ${grow / growPerGas}`);
-
-      // Cambiar relacion
-      high = high < grow / growPerGas ? high : grow / growPerGas
-      high = Math.round(high)
+      if(grow > 0){
+        console.log("Grow Per Gas: ",grow/growPerGas);
+      }
+      
+      if(high > grow/growPerGas){
+        console.log(`Cambio de high Anterior: ${high} Nuevo: ${Math.round(grow/growPerGas)}`)
+        high = Math.round(grow/growPerGas)
+        if(high < low){
+          high = low
+        }
+      }
       console.log(`High: ${high} Low: ${low}`)
-      let tmpGas = Math.floor(Math.random() * (high - low)) + low
+      gas = Math.floor(Math.random() * (high - low)) + low
+      console.log(gas);
+      
 
-      if (cooling) {
-        console.log("Cooling")
-        console.log(`Tmpgas : ${tmpGas} Gas: ${gas}`);
-
-        if (tmpGas > gas) {
-          gas = tmpGas
-        }
-      }
-      else {
-        if (!training) {
-          console.log("Se sigue normal");
-          gas = tmpGas
-        }
-      }
-
-
-
-      gas = training ? gas : (cooling ? (tmpGas > gas ? tmpGas : gas) : tmpGas)
-
-      console.log(`Se asignara: ${gas}%`)
-    } else {
+    }else {
       // Primera vez
       gas = Math.floor(Math.random() * 10) + 1
       console.log(`No se encontro registro parecido a ${grow}%`)
       console.log(`Se asignara valor de gas de ${gas}`)
     }
+
+
+    // if (upSnapshot.docs.length || downSnapshot.docs.length) {
+
+    //   // Aprender
+    //   if (upSnapshot.docs.length < 10) {
+    //     gas = upSnapshot.docs.length + 1
+    //     training = true;
+    //     console.log(`Se asigna gs de entrenamiento ${gas}`)
+    //   }
+    //   if (downSnapshot.docs.length) {
+    //     let lessLow = -1000
+    //     downSnapshot.docs.forEach(doc => {
+    //       let docGas = doc.data()["gas"]
+    //       let docGrow = doc.data()["grow"]
+
+    //       if (lessLow < docGas) {
+    //         lessLow = docGas
+    //       }
+
+
+    //       if (grow >= docGrow) {
+    //         low = docGas > 99 ? 99 : docGas + 1
+    //         console.log(`Low desde downSnapshot: ${low}`)
+    //       }
+
+    //     })
+
+    //     if (gas <= lessLow) {
+    //       gas = lessLow + 1
+    //       training = false
+    //       cooling = true
+    //       console.log(`Se asigna minimo de gas ${gas}`)
+    //     }
+
+    //   }
+
+    //   upSnapshot.docs.forEach(doc => {
+    //     let docGas = doc.data()["gas"]
+    //     let docGrow = doc.data()["grow"]
+    //     if (docGrow !== 0 && docGas !== 0) {
+    //       N++
+    //       growPerGas = docGrow / docGas > growPerGas ? docGrow / docGas : growPerGas
+
+    //     }
+    //     console.log(`Document gas: ${docGas}% grow: ${docGrow}ºC`)
+
+    //     // Optimo
+    //     if (grow === docGrow) {
+    //       gas = docGas
+    //     }
+
+    //     // Mayor
+    //     if (grow <= docGrow) {
+    //       high = docGas < 1 ? 1 : docGas - 1
+    //     }
+
+    //     // Menor
+    //     if (grow >= docGrow) {
+    //       low = docGas > 99 ? 99 : docGas + 1
+    //     }
+
+    //   })
+
+    //   console.log(`Grow per gas: ${growPerGas}`)
+
+    //   console.log("High " + high)
+    //   console.log(`High grow: ${grow / growPerGas}`);
+
+    //   // Cambiar relacion
+    //   high = high < grow / growPerGas ? high : grow / growPerGas
+    //   high = Math.round(high)
+    //   console.log(`High: ${high} Low: ${low}`)
+    //   let tmpGas = Math.floor(Math.random() * (high - low)) + low
+
+    //   if (cooling) {
+    //     console.log("Cooling")
+    //     console.log(`Tmpgas : ${tmpGas} Gas: ${gas}`);
+
+    //     if (tmpGas > gas) {
+    //       gas = tmpGas
+    //     }
+    //   }
+    //   else {
+    //     if (!training) {
+    //       console.log("Se sigue normal");
+    //       gas = tmpGas
+    //     }
+    //   }
+
+
+
+    //   gas = training ? gas : (cooling ? (tmpGas > gas ? tmpGas : gas) : tmpGas)
+
+    //   console.log(`Se asignara: ${gas}%`)
+    // } else {
+    //   // Primera vez
+    //   gas = Math.floor(Math.random() * 10) + 1
+    //   console.log(`No se encontro registro parecido a ${grow}%`)
+    //   console.log(`Se asignara valor de gas de ${gas}`)
+    // }
     return gas
   }
 
