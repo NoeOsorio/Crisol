@@ -55,7 +55,7 @@ class App extends React.Component {
     clearInterval(this.state.interval);
   }
 
-  getTemperature(temperatura_anterior, gas, ventilador) {
+  getTemperature(temperatura_anterior, gas, ventilador) { 
     // Temporal
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
     return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
@@ -117,9 +117,9 @@ class App extends React.Component {
 
   async getGasDB(grow) {
     
-    if (grow < 0) {
-      return 0
-    }
+    // if (grow <= 0) {
+    //   return 0
+    // }
     // Variables de entranemiento
     let training = false
     let cooling = false
@@ -179,13 +179,18 @@ class App extends React.Component {
       if(grow > 0){
         console.log("Grow Per Gas: ",grow/growPerGas);
       }
-      
-      if(high > grow/growPerGas){
+      // Ojala esto funciones:
+
+      // low++;
+
+      if(high > grow/growPerGas && grow/growPerGas > low){
         console.log(`Cambio de high Anterior: ${high} Nuevo: ${Math.round(grow/growPerGas)}`)
         high = Math.round(grow/growPerGas)
-        if(high < low){
-          high = low
-        }
+        
+      }
+
+      if(high < low){
+        high = low
       }
       console.log(`High: ${high} Low: ${low}`)
       gas = Math.floor(Math.random() * (high - low)) + low
@@ -299,7 +304,7 @@ class App extends React.Component {
     //   console.log(`No se encontro registro parecido a ${grow}%`)
     //   console.log(`Se asignara valor de gas de ${gas}`)
     // }
-    return gas
+    return gas > 0 ? gas : 0 
   }
 
   getBigger(a, b) {
