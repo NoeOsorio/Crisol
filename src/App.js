@@ -56,7 +56,7 @@ class App extends React.Component {
 
   getTemperature(temperatura_anterior, gas, ventilador) {
     // Temporal
-    return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
+    return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
 
@@ -130,8 +130,52 @@ class App extends React.Component {
     let low = 0, high = 100
     let upSnapshot = await firebase.firestore().collection('history').where("grow", ">=", 0).get()
     let downSnapshot = await firebase.firestore().collection('history').where("grow", "<", 0).get()
-
+    let snapshot = await firebase.firestore().collection('history').get()
     console.log(`Se necesita crecer: ${grow}ºC`)
+
+    // if (snapshot) {
+    //   if (snapshot.docs.length < 20) {
+    //     high = 20
+    //     training = true
+    //   }
+    //   console.log(high)
+    //   snapshot.docs.forEach(doc => {
+    //     let docGas = doc.data()["gas"]
+    //     let docGrow = doc.data()["grow"]
+
+    //     if(grow === docGrow){
+    //       low = docGas
+    //       high = docGas
+    //     }
+    //     else if(grow > docGrow){
+    //       // low = low < high ? docGas : low
+    //       if(low < high){
+    //         low = docGas
+    //       }
+    //       else{
+    //         high = training ? low + 1 : high
+    //       }
+    //     }else{
+    //       if( high > low){
+    //         high = docGas
+    //       }
+    //       else{
+    //         low = training ? high - 1 : low
+    //       }
+    //     }
+
+    //   })
+    //   console.log(`High: ${high} Low: ${low}`)
+    //   gas = Math.floor(Math.random() * (high - low)) + low
+    //   console.log(gas);
+      
+
+    // }else {
+    //   // Primera vez
+    //   gas = Math.floor(Math.random() * 10) + 1
+    //   console.log(`No se encontro registro parecido a ${grow}%`)
+    //   console.log(`Se asignara valor de gas de ${gas}`)
+    // }
 
 
     if (upSnapshot.docs.length || downSnapshot.docs.length) {
@@ -200,7 +244,7 @@ class App extends React.Component {
 
       console.log("High " + high)
       console.log(`High grow: ${grow / growPerGas}`);
-      
+
       // Cambiar relacion
       high = high < grow / growPerGas ? high : grow / growPerGas
       high = Math.round(high)
@@ -215,14 +259,14 @@ class App extends React.Component {
           gas = tmpGas
         }
       }
-      else{
-        if(!training){
+      else {
+        if (!training) {
           console.log("Se sigue normal");
           gas = tmpGas
         }
       }
 
-      
+
 
       gas = training ? gas : (cooling ? (tmpGas > gas ? tmpGas : gas) : tmpGas)
 
