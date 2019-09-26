@@ -8,7 +8,6 @@ import firebase from "./config/firebase"
 import TextField from "./textField"
 import Output from "./output"
 
-
 class App extends React.Component {
 
   constructor(props) {
@@ -19,7 +18,7 @@ class App extends React.Component {
       fan: 0,
       goal: 270,
       // Aumenta 10%
-      porcentaje: 0
+      porcentaje: 0,
     };
     this.handlePlay = this.handlePlay.bind(this);
     this.handleStop = this.handleStop.bind(this);
@@ -55,7 +54,7 @@ class App extends React.Component {
     clearInterval(this.state.interval);
   }
 
-  getTemperature(temperatura_anterior, gas, ventilador) { 
+  getTemperature(temperatura_anterior, gas, ventilador) {
     // Temporal
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
     return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
@@ -82,15 +81,24 @@ class App extends React.Component {
 
   async warm() {
 
-    let last = this.state.temperature
-    let needed = this.getDiff(last)
-    let gas = await this.getGasDB(needed)
-    let fan = this.getFanCounter(needed)
+    var last = this.state.temperature
+    var needed = this.getDiff(last)
+    var fan = this.getFanCounter(needed)
+    var gas = await this.getGasDB(needed, fan)
 
-    let temp = parseInt(this.getTemperature(last, gas, fan))
-    let grow = temp - last
+    var temp = parseInt(this.getTemperature(last, gas, fan))
+    var grow = temp - last
+
+
+    if (last <= this.state.goal + 10 && last >= this.state.goal - 10) {
+      needed = this.getDiff(temp)
+      fan = this.getFanCounter(needed)
+      gas = await this.getGasDB(needed, fan)
+      temp = parseInt(this.getTemperature(last, gas, fan))
+    }
 
     console.log(`Aumento ${grow} ºC con ${gas}% de gas`)
+
     this.setState({
       last: last,
       gas: gas,
@@ -115,8 +123,11 @@ class App extends React.Component {
     firebase.firestore().collection('history').add(object)
   }
 
-  async getGasDB(grow) {
-    
+  async getGasDB(grow, fan) {
+
+    if (fan) {
+      return 0
+    }
     // if (grow <= 0) {
     //   return 0
     // }
@@ -136,9 +147,9 @@ class App extends React.Component {
     console.log(`\n Se necesita crecer: ${grow}ºC`)
 
     if (snapshot) {
-      if (snapshot.docs.length < 20) {
+      if (snapshot.docs.length < 10) {
         console.log("Entrenando")
-        high = Math.floor(Math.random() * 20) + 1
+        high = Math.floor(Math.random() * 10) + 1
         training = true
       }
 
@@ -148,56 +159,56 @@ class App extends React.Component {
         let docGrow = doc.data()["grow"]
         let docTemp = doc.data()["temperature"]
 
-        if(docTemp >= this.goal){
+        if (docTemp >= this.state.goal) {
           high = docGas
         }
-        if(docGrow !== 0 && docGas !== 0){
+        if (docGrow !== 0 && docGas !== 0) {
           growPerGas = docGrow / docGas > growPerGas ? docGrow / docGas : growPerGas
         }
-        if(grow === docGrow){
+        if (grow === docGrow) {
           low = docGas
           high = docGas
         }
-        else if(grow > docGrow){
+        else if (grow > docGrow) {
           // low = low < high ? docGas : low
-          if(low < high){
+          if (low < high) {
             low = docGas + 1
           }
-          else if(high < low){
+          else if (high < low) {
             high = training ? low + 1 : high
           }
-        }else{
-          if( high > low){
+        } else {
+          if (high > low) {
             high = docGas - 1
           }
-          else if(low > high){
+          else if (low > high) {
             low = training ? high - 1 : low
           }
         }
 
       })
-      if(grow > 0){
-        console.log("Grow Per Gas: ",grow/growPerGas);
+      if (grow > 0) {
+        console.log("Grow Per Gas: ", grow / growPerGas);
       }
       // Ojala esto funciones:
 
       // low++;
 
-      if(high > grow/growPerGas && grow/growPerGas > low){
-        console.log(`Cambio de high Anterior: ${high} Nuevo: ${Math.round(grow/growPerGas)}`)
-        high = Math.round(grow/growPerGas)
-        
+      if (high > grow / growPerGas && grow / growPerGas > low) {
+        console.log(`Cambio de high Anterior: ${high} Nuevo: ${Math.round(grow / growPerGas)}`)
+        high = Math.round(grow / growPerGas)
+
       }
 
-      if(high < low){
+      if (high < low) {
         high = low
       }
       console.log(`High: ${high} Low: ${low}`)
       gas = Math.floor(Math.random() * (high - low)) + low
       console.log(gas);
-      
 
-    }else {
+
+    } else {
       // Primera vez
       gas = Math.floor(Math.random() * 10) + 1
       console.log(`No se encontro registro parecido a ${grow}%`)
@@ -304,7 +315,7 @@ class App extends React.Component {
     //   console.log(`No se encontro registro parecido a ${grow}%`)
     //   console.log(`Se asignara valor de gas de ${gas}`)
     // }
-    return gas > 0 ? gas : 0 
+    return gas > 0 ? gas : 0
   }
 
   getBigger(a, b) {
