@@ -57,8 +57,8 @@ class App extends React.Component {
 
   getTemperature(temperatura_anterior, gas, ventilador) { 
     // Temporal
-    // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
-    return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
+    return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
+    // return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
 
   }
