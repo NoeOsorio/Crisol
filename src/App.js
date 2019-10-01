@@ -57,17 +57,17 @@ class App extends React.Component {
   getTemperature(temperatura_anterior, gas, ventilador) {
     // Temporal
     // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
-    return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
-    // return (temperatura_anterior) + (gas * gas) - 2 - (ventilador ? 3 : 0)
+    // return (temperatura_anterior) + (gas * gas) - 40 - (ventilador ? 3 : 0)
+    return (temperatura_anterior) + (gas) - 2 - (ventilador ? 3 : 0)
 
   }
 
-  getGrow(last) {
-    let grow = (this.state.goal / last - 1) * 100
-    console.log(`${this.state.goal} / ${last} - 1 = ${grow} %`)
-    console.log(`Va a crecer ${grow}%`)
-    return grow
-  }
+  // getGrow(last) {
+  //   let grow = (this.state.goal / last - 1) * 100
+  //   console.log(`${this.state.goal} / ${last} - 1 = ${grow} %`)
+  //   console.log(`Va a crecer ${grow}%`)
+  //   return grow
+  // }
 
   getDiff(temp) {
     return this.state.goal - temp
@@ -75,19 +75,16 @@ class App extends React.Component {
 
 
 
-  getFanCounter(grow) {
-    return grow < 0;
+  getFanCounter(gas) {
+    return gas <= 0;
   }
 
   async warm() {
 
-    var last = this.state.temperature
-    var needed = this.getDiff(last)
-    var fan = this.getFanCounter(needed)
-    var gas = await this.getGasDB(needed, fan)
-
-    var temp = parseInt(this.getTemperature(last, gas, fan))
-    var grow = temp - last
+    let last = this.state.temperature
+    let needed = this.getDiff(last)
+    let gas = await this.getGasDB(needed)
+    let fan = this.getFanCounter(gas)
 
 
     if (last <= this.state.goal + 10 && last >= this.state.goal - 10) {
@@ -140,9 +137,10 @@ class App extends React.Component {
     let gas = 0
     let growPerGas = 1
     let low = 0, high = 100 //Gas
+    let lowDiff = 0, highDiff = 0 //grow
     // let upSnapshot = await firebase.firestore().collection('history').where("grow", ">=", 0).get()
     // let downSnapshot = await firebase.firestore().collection('history').where("grow", "<", 0).get()
-    let snapshot = await firebase.firestore().collection('history').get()
+    let snapshot = await firebase.firestore().collection('history').orderBy("grow").get()
 
     console.log(`\n Se necesita crecer: ${grow}ºC`)
 
@@ -159,53 +157,82 @@ class App extends React.Component {
         let docGrow = doc.data()["grow"]
         let docTemp = doc.data()["temperature"]
 
-        if (docTemp >= this.state.goal) {
-          high = docGas
+        if(this.state.temperature === docTemp){
+          // alert("Es la misma")
+          // gas = docGas
+
         }
-        if (docGrow !== 0 && docGas !== 0) {
+
+        if(docGrow > this.state.goal && high > docGas){
+          high = docGas  
+          console.log("Se esta pasando " + high)
+        }
+        if(docGrow !== 0 && docGas !== 0){
+          console.log("Grow per gas")
           growPerGas = docGrow / docGas > growPerGas ? docGrow / docGas : growPerGas
         }
-        if (grow === docGrow) {
+        if(grow === docGrow){
+          console.log("Exacto High: " + high + " Low:" +low)
           low = docGas
+          lowDiff = grow - Math.abs(docGrow)
           high = docGas
+          highDiff = grow - Math.abs(docGrow)
         }
-        else if (grow > docGrow) {
+        else if(grow > docGrow){
+          console.log("Grow es mayor que doc Low " + low)
           // low = low < high ? docGas : low
-          if (low < high) {
-            low = docGas + 1
+          if(low < high ){
+            low = (grow >= 0 && docGrow >= 0 ) ? docGas : (grow >= 0 && Math.abs(grow - docGrow) <= 5 && Math.abs(grow - docGrow) >= 0) ? docGas : grow >= 0 ? docGas + 1 :docGas
+            lowDiff = grow - Math.abs(docGrow)
+            console.log(`Low es menor que high Low: ${low}`)
           }
-          else if (high < low) {
-            high = training ? low + 1 : high
+          else if(high < low){
+            console.log(`high es menor que low High: ${high}`)
+            high = training ? low : high
+            highDiff = grow - Math.abs(docGrow)
           }
-        } else {
-          if (high > low) {
-            high = docGas - 1
+        }else{
+          console.log("Grow es menor que doc Grow" + high)
+          if( high > low && high > docGas){
+            high = docGas 
+            highDiff = grow - Math.abs(docGrow)
           }
-          else if (low > high) {
-            low = training ? high - 1 : low
+          else if(low > high){
+            low = training ? high : low
+            lowDiff = grow - Math.abs(docGrow)
           }
         }
 
       })
-      if (grow > 0) {
-        console.log("Grow Per Gas: ", grow / growPerGas);
+      if(grow > 0){
+
+        console.log("Grow Per Gas: ",grow/growPerGas);
       }
       // Ojala esto funciones:
 
       // low++;
 
-      if (high > grow / growPerGas && grow / growPerGas > low) {
-        console.log(`Cambio de high Anterior: ${high} Nuevo: ${Math.round(grow / growPerGas)}`)
-        high = Math.round(grow / growPerGas)
-
+      if(high > grow/growPerGas && grow/growPerGas > low){
+        console.log(`Cambio de high Anterior: ${high} Nuevo: ${Math.round(grow/growPerGas)}`)
+        high = Math.round(grow/growPerGas)
       }
 
       if (high < low) {
         high = low
       }
       console.log(`High: ${high} Low: ${low}`)
-      gas = Math.floor(Math.random() * (high - low)) + low
-      console.log(gas);
+      if(high - low <= 1){
+        high = lowDiff > highDiff ? low : high
+        low = lowDiff < highDiff ? high : low
+      }
+      if(!gas){
+        console.log("No hay gas")
+        console.log(`Lowdiff: ${lowDiff} HighDiff: ${highDiff}`)
+        console.log(`High: ${high} Low: ${low}`)
+        gas = Math.floor(Math.random() * (high - low)) + low
+        console.log(gas);
+      }
+      
 
 
     } else {
